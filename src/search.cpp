@@ -36,6 +36,8 @@
 #include "nnue/evaluate_nnue.h"
 
 namespace Stockfish {
+int tune_1003_0 = 3, tune_1003_1 = 2, tune_1003_2 = 2, tune_1101_0 = 9;
+TUNE(tune_1003_0, tune_1003_1, tune_1003_2, tune_1101_0);
 
 namespace Search {
 
@@ -1000,7 +1002,7 @@ moves_loop: // When in check, search starts here
               && (tte->bound() & BOUND_LOWER)
               &&  tte->depth() >= depth - 3)
           {
-              Value singularBeta = ttValue - (3 + 2 * (ss->ttPv && !PvNode)) * depth / 2;
+              Value singularBeta = ttValue - ((tune_1003_0) + (tune_1003_1) * (ss->ttPv && !PvNode)) * depth / (tune_1003_2);
               Depth singularDepth = (depth - 1) / 2;
 
               ss->excludedMove = move;
@@ -1098,7 +1100,7 @@ moves_loop: // When in check, search starts here
           r--;
 
       // Decrease reduction if we move a threatened piece (~1 Elo)
-      if (   depth > 9
+      if (   depth > (tune_1101_0)
           && (mp.threatenedPieces & from_sq(move)))
           r--;
 

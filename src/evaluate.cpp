@@ -38,6 +38,8 @@
 using namespace std;
 
 namespace Stockfish {
+int tune_117_0 = 477, tune_117_1 = 401, tune_122_0 = 668, tune_122_1 = 106, tune_123_0 = 281, tune_124_0 = 740, tune_127_0 = 205, tune_127_2 = 120;
+TUNE(tune_117_0, tune_117_1, tune_122_0, tune_122_1, tune_123_0, tune_124_0, tune_127_0, tune_127_2);
 
 namespace Eval {
 
@@ -114,17 +116,17 @@ Value Eval::evaluate(const Position& pos, int* complexity) {
 
   // Blend nnue complexity with (semi)classical complexity
   Value optimism = pos.this_thread()->optimism[pos.side_to_move()];
-  nnueComplexity = (477 * nnueComplexity + (401 + optimism) * abs(material - nnue)) / 1024;
+  nnueComplexity = ((tune_117_0) * nnueComplexity + ((tune_117_1) + optimism) * abs(material - nnue)) / 1024;
   if (complexity) // Return hybrid NNUE complexity to caller
       *complexity = nnueComplexity;
 
   // scale nnue score according to material and optimism
-  int scale = 668 + 106 * pos.material_sum() / 4096;
-  optimism = optimism * (281 + nnueComplexity) / 256;
-  Value v = (nnue * scale + optimism * (scale - 740)) / 1024;
+  int scale = (tune_122_0) + (tune_122_1) * pos.material_sum() / 4096;
+  optimism = optimism * ((tune_123_0) + nnueComplexity) / 256;
+  Value v = (nnue * scale + optimism * (scale - (tune_124_0))) / 1024;
 
   // Damp down the evaluation linearly when shuffling
-  v = v * (205 - pos.rule60_count()) / 120;
+  v = v * ((tune_127_0) - pos.rule60_count()) / (tune_127_2);
 
   // Guarantee evaluation does not hit the mate range
   v = std::clamp(v, VALUE_MATED_IN_MAX_PLY + 1, VALUE_MATE_IN_MAX_PLY - 1);
