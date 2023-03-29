@@ -16,10 +16,10 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-//Definition of input features HalfKAv2_hm of NNUE evaluation function
+// Definition of input features KA_hm of NNUE evaluation function
 
-#ifndef NNUE_FEATURES_HALF_KA_V2_HM_H_INCLUDED
-#define NNUE_FEATURES_HALF_KA_V2_HM_H_INCLUDED
+#ifndef NNUE_FEATURES_KA_HM_H_INCLUDED
+#define NNUE_FEATURES_KA_HM_H_INCLUDED
 
 #include "../nnue_common.h"
 
@@ -32,8 +32,9 @@ namespace Stockfish {
 
 namespace Stockfish::Eval::NNUE::Features {
 
-  // Feature HalfKAv2_hm: Combination of the position of own king and the position of pieces.
-  class HalfKAv2_hm {
+  // Feature KA_hm: Combination of the position of two kings and the position of pieces.
+  // Position mirrored if white king is on file f or white king is on file e and black king is on file f
+  class KA_hm {
 
     // unique number for each piece type on each square
     enum {
@@ -58,33 +59,45 @@ namespace Stockfish::Eval::NNUE::Features {
         PS_NONE, PS_W_ROOK, PS_AB_W_KP, PS_W_CANNON, PS_AB_W_KP, PS_W_KNIGHT, PS_AB_W_KP, PS_AB_W_KP, }
     };
 
-    // Index of a feature for a given king position and another piece on some square
+    // Index of a feature for a given king bucket and another piece on some square
     template<Color Perspective>
-    static IndexType make_index(Square s, Piece pc, Square ksq, int ab);
+    static IndexType make_index(Square s, Piece pc, int bucket);
 
    public:
     // Feature name
-    static constexpr const char* Name = "HalfKAv2_hm";
+    static constexpr const char* Name = "KA_hm";
 
     // Hash value embedded in the evaluation file
     static constexpr std::uint32_t HashValue = 0xd17b100;
 
     // Number of feature dimensions
-    static constexpr IndexType Dimensions = 6 * 2 * 2 * static_cast<IndexType>(PS_NB);
+    static constexpr IndexType Dimensions = (3 * 9 + 3 * 6) * static_cast<IndexType>(PS_NB);
 
-#define M(s) ((1 << 3) | s)
-    // Stored as (mirror << 3 | bucket)
-    static constexpr uint8_t KingBuckets[SQUARE_NB] = {
-        0,  0,  0,  0,  1, M(0),  0,  0,  0,
-        0,  0,  0,  3,  2, M(3),  0,  0,  0,
-        0,  0,  0,  4,  5, M(4),  0,  0,  0,
-        0,  0,  0,  0,  0,   0 ,  0,  0,  0,
-        0,  0,  0,  0,  0,   0 ,  0,  0,  0,
-        0,  0,  0,  0,  0,   0 ,  0,  0,  0,
-        0,  0,  0,  0,  0,   0 ,  0,  0,  0,
-        0,  0,  0,  4,  5, M(4),  0,  0,  0,
-        0,  0,  0,  3,  2, M(3),  0,  0,  0,
-        0,  0,  0,  0,  1, M(0),  0,  0,  0,
+    static constexpr uint8_t KingMaps[SQUARE_NB] = {
+        0,  0,  0,  0,  9, 18,  0,  0,  0,
+        0,  0,  0, 27, 36, 45,  0,  0,  0,
+        0,  0,  0, 54, 63, 72,  0,  0,  0,
+        0,  0,  0,  0,  0,  0,  0,  0,  0,
+        0,  0,  0,  0,  0,  0,  0,  0,  0,
+        0,  0,  0,  0,  0,  0,  0,  0,  0,
+        0,  0,  0,  0,  0,  0,  0,  0,  0,
+        0,  0,  0,  6,  7,  8,  0,  0,  0,
+        0,  0,  0,  3,  4,  5,  0,  0,  0,
+        0,  0,  0,  0,  1,  2,  0,  0,  0,
+    };
+
+#define M(s) ((1 << 6) | s)
+    // Stored as (mirror << 6 | bucket)
+    static constexpr uint8_t KingBuckets[81] = {
+           0 ,    1 ,    2 ,    3 ,    4 ,    5 ,    6 ,    7 ,    8 , // white king on  0, no mirror
+           9 ,   10 , M( 9),   11 ,   12 , M(11),   13 ,   14 , M(13), // white king on  9, mirror for black
+        M( 2), M( 1), M( 0), M( 5), M( 4), M( 3), M( 8), M( 7), M( 6), // white king on 18, mirror for white
+          15 ,   16 ,   17 ,   18 ,   19 ,   20,    21 ,   22 ,   23 , // white king on 27, no mirror
+          24 ,   25 , M(24),   26 ,   27 , M(26),   28 ,   29 , M(28), // white king on 36, mirror for black
+        M(17), M(16), M(15), M(20), M(19), M(18), M(23), M(22), M(21), // white king on 45, mirror for white
+          30 ,   31 ,   32 ,   33 ,   34 ,   35 ,   36 ,   37 ,   38 , // white king on 54, no mirror
+          39 ,   40 , M(39),   41 ,   42 , M(41),   43 ,   44 , M(43), // white king on 63, mirror for black
+        M(32), M(31), M(30), M(35), M(34), M(33), M(38), M(37), M(36), // white king on 72, mirror for white
     };
 #undef M
 
@@ -183,6 +196,10 @@ namespace Stockfish::Eval::NNUE::Features {
     static constexpr IndexType MaxActiveDimensions = 32;
     using IndexList = ValueList<IndexType, MaxActiveDimensions>;
 
+    // Get the king bucket
+    template<Color Perspective>
+    static uint8_t king_bucket(const Position& pos);
+
     // Get a list of indices for active features
     template<Color Perspective>
     static void append_active_indices(
@@ -192,8 +209,7 @@ namespace Stockfish::Eval::NNUE::Features {
     // Get a list of indices for recently changed features
     template<Color Perspective>
     static void append_changed_indices(
-      Square ksq,
-      int ab,
+      uint8_t bucket,
       const DirtyPiece& dp,
       IndexList& removed,
       IndexList& added
@@ -206,9 +222,9 @@ namespace Stockfish::Eval::NNUE::Features {
 
     // Returns whether the change stored in this StateInfo means that
     // a full accumulator refresh is required.
-    static bool requires_refresh(const StateInfo* st, Color perspective);
+    static bool requires_refresh(const StateInfo* st);
   };
 
 }  // namespace Stockfish::Eval::NNUE::Features
 
-#endif // #ifndef NNUE_FEATURES_HALF_KA_V2_HM_H_INCLUDED
+#endif // #ifndef NNUE_FEATURES_KA_HM_H_INCLUDED

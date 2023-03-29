@@ -352,7 +352,7 @@ namespace Stockfish::Eval::NNUE {
       {
         // This governs when a full feature refresh is needed and how many
         // updates are better than just one full refresh.
-        if (   FeatureSet::requires_refresh(st, Perspective)
+        if (   FeatureSet::requires_refresh(st)
             || (gain -= FeatureSet::update_cost(st) + 1) < 0)
           break;
         next = st;
@@ -383,8 +383,7 @@ namespace Stockfish::Eval::NNUE {
       // Update incrementally going back through states_to_update.
 
       // Gather all features to be updated.
-      const Square ksq = pos.square<KING>(Perspective);
-      const int ab = bool(pos.count<ADVISOR>(Perspective)) * 2 + bool(pos.count<BISHOP>(Perspective));
+      const uint8_t bucket = FeatureSet::king_bucket<Perspective>(pos);
 
       // The size must be enough to contain the largest possible update.
       // That might depend on the feature set and generally relies on the
@@ -407,7 +406,7 @@ namespace Stockfish::Eval::NNUE {
 
           for (; st2 != end_state; st2 = st2->previous)
             FeatureSet::append_changed_indices<Perspective>(
-              ksq, ab, st2->dirtyPiece, removed[i], added[i]);
+              bucket, st2->dirtyPiece, removed[i], added[i]);
         }
       }
 
